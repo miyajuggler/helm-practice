@@ -109,7 +109,7 @@ Error: could not find tiller
 
 ### 3. Tiller をインストール
 
-helm init により Kubernetes クラスタ上に tiller をデプロイする。
+helm init により Kubernetes クラスタ上に tiller を -n=kube-system にデプロイする。同時にローカルの helm リポジトリとローカルキャッシュディレクトリが作成される。
 
 以下コマンドを打ってデプロイしようとするも失敗。
 
