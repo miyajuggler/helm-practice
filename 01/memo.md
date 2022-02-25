@@ -78,6 +78,8 @@ helm の利点
 
 ※ helm v3 では tiller サーバーが廃止されている。今回の練習では helm v2 で行うものとする
 
+公開されている chart には、安定した Stable 版と、Stable には昇格はしていないが、chart として使用可能な Incubator 版がある。デフォルトでは helm に登録されているリポジトリは Stable 版だけで、Incubator 版を使用したい場合は手動で追加する必要がある。（03 にて詳しく説明する）
+
 ### Helm チャートの構造
 
 ```
@@ -95,19 +97,19 @@ helm の利点
 
 上記の Chart.yaml、requirementes.yaml, values.yaml そして templates ディレクトリはまずはそのファイル名と役割は理解しておくことが何よりも必要
 
-またその中でも自作 Chart の場合は chart.yaml、values.yaml, templates ディレクトリが重要
+またその中でも自作 Chart の場合は chart.yaml, values.yaml, templates ディレクトリが重要
 
 ### chart.yaml
 
-chart の説明やソースリポジトリなどの情報が記載。
+- chart の説明やソースリポジトリなどの情報が記載。
 
 ### values.yaml
 
-template 配下の kubernetes マニフェストを利用するための変数とその値を定義している。
+- template 配下の kubernetes マニフェストを利用するための変数とその値を定義している。
 
 ### templates ディレクトリ
 
-kubernetes マニフェストファイル群が配置。
+- kubernetes マニフェストファイル群が配置。
 
 ## 参考
 
