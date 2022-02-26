@@ -1,3 +1,5 @@
+# helm でアプリケーションをデプロイ
+
 ## Helm コマンドを試す
 
 ### helm repo
@@ -446,6 +448,8 @@ serviceaccount/test-sample   1         8m45s
 
 </details>
 
+ちなみに helm 上にある release と同じ名前で release を作ろうとするとエラーになる。
+
 ### helm list
 
 release のリストを表示するコマンド。`helm install` でインストールした release が存在する。
@@ -660,6 +664,12 @@ $ helm diff revision soft-meerkat 2 3
    sample          1               Sat Feb 26 12:41:53 2022
    soft-meerkat    4               Sat Feb 26 15:11:46 2022
    test            1               Sat Feb 26 12:40:41 2022
+
+   # 変更があると kubernetes リソースも生まれ変わるみたい
+   $ kubectl get po
+   NAME                                   READY   STATUS        RESTARTS   AGE
+   soft-meerkat-sample-5b7856978c-wjrn5   1/1     Running       0          2s
+   soft-meerkat-sample-d8865bf6f-ktfrs    1/1     Terminating   0          19m
    ```
 
 3. `helm diff` 実行

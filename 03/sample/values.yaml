@@ -7,7 +7,7 @@ replicaCount: 1
 image:
   repository: nginx
   tag: stable
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
