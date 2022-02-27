@@ -1,0 +1,3 @@
+imageTag: "5.7.25"
+busybox:
+  tag: "1.30"
