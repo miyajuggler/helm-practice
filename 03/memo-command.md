@@ -1,8 +1,6 @@
-# helm でアプリケーションをデプロイ
+# Helm コマンドを試す
 
-## Helm コマンドを試す
-
-### helm repo
+## helm repo
 
 chart リポジトリの追加、削除、更新、一覧を表示するコマンド。
 
@@ -41,7 +39,7 @@ incubator       https://charts.helm.sh/incubator
 - [Helm のサブコマンドを全部使ってみた](https://dev.classmethod.jp/articles/helm-sub-commands/#:~:text=%E5%A4%B1%E6%95%97%E3%81%97%E3%81%BE%E3%81%97%E3%81%9F%E3%81%AD%E2%80%A6%E8%AA%BF%E3%81%B9%E3%81%9F%E3%81%A8%E3%81%93%E3%82%8D%E3%81%AB%E3%82%88%E3%82%8B%E3%81%A8%E3%80%81mariadb%E3%83%81%E3%83%A3%E3%83%BC%E3%83%88%E9%85%8D%E5%B8%83%E5%85%83%E3%81%AEhttps%3A//kubernetes%2Dcharts.storage.googleapis.com/%E3%83%AA%E3%83%9D%E3%82%B8%E3%83%88%E3%83%AA%E3%81%8C%E5%BB%83%E6%AD%A2%E3%81%95%E3%82%8C%E3%80%81%E4%BB%A3%E3%82%8F%E3%82%8A%E3%81%ABhttps%3A//charts.helm.sh/stable%E3%82%92%E4%BD%BF%E3%81%86%E5%BF%85%E8%A6%81%E3%81%8C%E3%81%82%E3%82%8B%E3%82%88%E3%81%86%E3%81%A7%E3%81%99%E3%80%82%E3%81%A8%E3%81%84%E3%81%86%E3%82%8F%E3%81%91%E3%81%A7%E5%85%88%E7%A8%8B%E3%81%AEYAML%E3%82%92%E6%9B%B4%E6%96%B0%E3%81%97%E3%81%BE%E3%81%99%E3%80%82)
 - https://github.com/helm/charts
 
-### helm search
+## helm search
 
 指定したキーワードで chart を検索するコマンド。
 
@@ -63,7 +61,7 @@ stable/mariadb                          7.3.14          10.3.22         DEPRECAT
 すでに chart が公開されていないか確認するときに使う。
 またコマンド上じゃなくても、HelmHub で UI 上で検索することも可能
 
-### helm fetch
+## helm fetch
 
 chart をリポジトリからダウンロードするときに使う。
 
@@ -78,7 +76,7 @@ mysql-1.6.9.tgz
 
 後に説明する `helm template` と組み合わせて、外部公開されている chart の yaml を簡単に取得することができる。
 
-### helm create
+## helm create
 
 指定した名前の chart テンプレートを生成するコマンド。
 
@@ -108,7 +106,7 @@ sample
 
 sample ディレクトリそのものが chart に相当
 
-### helm package
+## helm package
 
 chart をアーカイブするコマンド (「<chart 名>-<バージョン>.tgz」の形)
 
@@ -121,7 +119,7 @@ Successfully packaged chart and saved it to: /Users/miyazakinaohiro/github/helm-
 chart リポジトリを稼働させるにはアーカイブファイルを HTTP サーバーに配置する必要がある。
 そのため chart を自作して公開する場合には必須のコマンド。
 
-### helm lint
+## helm lint
 
 chart を構文チェックするコマンド。推奨構成についても指摘してくれる。
 
@@ -137,7 +135,7 @@ $ helm lint sample
 
 lint の結果に問題はなく、chart 似アイコンを付けることが推奨されていることがわかる。
 
-### helm template
+## helm template
 
 template 配下の yaml ファイルを表示するコマンド。  
 template 配下の yaml ファイルは変数定義されている。`helm template` コマンドを実行することで、`values.yaml` に記載された値を templates 配下の yaml に代入し、yaml ファイル形式の標準出力が得られる。
@@ -279,7 +277,7 @@ mysql-1.6.9.tgz
 $ helm template mysql-1.6.9.tgz
 ```
 
-### helm install
+## helm install
 
 chart をクラスターにインストールするコマンド。
 以下コマンドのように sample chart を kubernetes クラスターにインストールする。
@@ -450,7 +448,7 @@ serviceaccount/test-sample   1         8m45s
 
 ちなみに helm 上にある release と同じ名前で release を作ろうとするとエラーになる。
 
-### helm list
+## helm list
 
 release のリストを表示するコマンド。`helm install` でインストールした release が存在する。
 
@@ -466,7 +464,7 @@ test            1               Sat Feb 26 12:40:41 2022        DEPLOYED        
 STATUS が DEPLOYED の release の一覧が見える。  
 STATUS が DELETED になっている release を見たい場合は `-a` をつけると良い
 
-### helm status
+## helm status
 
 指定した release のステータスを確認するコマンド。
 
@@ -503,7 +501,7 @@ NOTES:
 
 `helm install` した際に出力された情報を見ることができる。
 
-### helm delete
+## helm delete
 
 クラスターにデプロイされていた kubernetes リソースが削除される。
 
@@ -538,7 +536,7 @@ sample  1               Sat Feb 26 12:41:53 2022        DEPLOYED        sample-0
 test    1               Sat Feb 26 12:40:41 2022        DEPLOYED        sample-0.1.0    1.0             application
 ```
 
-### helm rollback
+## helm rollback
 
 release を指定したバージョンにロールバックするコマンド。
 
@@ -583,7 +581,7 @@ release 名に soft meerkat、REVISION に 1 を指定することで、STATUS �
 
 次に説明する `helm upgrade` で release を更新した後に、指定した REVISION にロールバックさせることもできる。
 
-### helm upgrade
+## helm upgrade
 
 指定した release を更新するコマンド。  
 何も更新していないくても REVISION が繰り上がる。
@@ -605,7 +603,7 @@ soft-meerkat    3               Sat Feb 26 14:49:30 2022        DEPLOYED        
 test            1               Sat Feb 26 12:40:41 2022        DEPLOYED        sample-0.1.0    1.0             application
 ```
 
-### helm plugin
+## helm plugin
 
 Helm には Helm plugin というアドオンツール群が存在。この helm plugin コマンドはその管理を担う。  
 以下 4 つのサブコマンドが存在
@@ -624,7 +622,7 @@ $ helm plugin list
 NAME    VERSION DESCRIPTION
 ```
 
-### helm diff
+## helm diff
 
 helm は標準のコマンドだけでは差分を見ることができない。helm-diff というツールを開発しているため、`helm plugin` コマンドで helm-diff をインストールする。
 
@@ -683,7 +681,7 @@ $ helm diff revision soft-meerkat 2 3
    (省略)
    ```
 
-### helm history
+## helm history
 
 release の履歴を表示するコマンド。
 
