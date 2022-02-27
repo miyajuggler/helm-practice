@@ -1,8 +1,6 @@
-# helm でアプリケーションをデプロイ
+# Mysql をデプロイ
 
-## Mysql をデプロイ
-
-### mysql をインストール
+## mysql をインストール
 
 コマンド練習の段階で `helm fetch stable/mysql` で chart はリポジトリからダウンロード済み
 
@@ -191,7 +189,7 @@ opinionated-bee-mysql-7897bc9576-55px5   1/1     Running     0          14m
 
 [M1 の kubernetes で詰まったところ調査](https://zenn.dev/ohkisuguru/scraps/5b9d76333ff13d)
 
-### mysql にアクセス
+## mysql にアクセス
 
 NOTES に書かれている手順に従って、kubernetes クラスタ内から mysql にアクセスする。
 
@@ -326,6 +324,9 @@ $ echo 'imageTag: "5.7.25"' > values.yaml
 ```sh
 # helm install --value values.yaml stable/mysql でも可
 $ helm install -f values.yaml stable/mysql
+WARNING: This chart is deprecated
+NAME:   geared-ostrich
+(省略)
 
 # mysql のimageTag を確認
 $ kubectl get po geared-ostrich-mysql-f8b85f7dc-r8776 -o json | jq '.spec | .containers[] | .image'
@@ -338,8 +339,8 @@ chart では非常に多くの値を変更できる。
 
 また、ファイルを複数指定することができる。
 
-例として、mysql の imageTag を `imageTag: "5.7.30"` から `"5.7.14"` に  
-initContainer で利用している busybox の tag を `tag: "1.32"` から `1.30` にしてみる
+例として、mysql の imageTag を「5.7.30」から「5.7.14」に  
+initContainer で利用している busybox の tag を「1.32」から「1.30」にしてみる
 
 準備
 
@@ -358,6 +359,9 @@ EOF
 
 ```sh
 $ helm install -f values.yaml -f values2.yaml stable/mysql
+WARNING: This chart is deprecated
+NAME:   triangular-ragdoll
+(省略)
 
 # 確認
 $ kubectl get po triangular-ragdoll-mysql-7587b8dc9f-6kpjj -o json | jq '.spec | .containers[] | .image'
@@ -366,6 +370,53 @@ $ kubectl get po triangular-ragdoll-mysql-7587b8dc9f-6kpjj -o json | jq '.spec |
 $ kubectl get po triangular-ragdoll-mysql-7587b8dc9f-6kpjj -o json | jq '.spec | .initContainers[] | .image'
 "busybox:1.30"
 ```
+
+### 試す
+
+普通にこのようなファイルを用意しててもうまくいくんじゃない？と思ったのでやってみる。
+
+values3.yaml
+
+```yml
+imageTag: "5.7.25"
+busybox:
+  tag: "1.30"
+```
+
+```sh
+$ helm install -f values3.yaml stable/mysql
+WARNING: This chart is deprecated
+NAME:   gauche-otter
+(省略)
+```
+
+確認コマンドで、それぞれの imageTag と tag を取得するとちゃんと反映されていた。
+
+### 試す 2
+
+ローカルにある chart の上書きはできるのだろうか。と思いやってみる。  
+imageTag は色々変更を加えてしまっているので、変更部分は busybox の tag のみにしてみる。  
+tag を「1.32」から「1.30」に変更。
+
+```sh
+# 確認
+$ cat values2.yaml
+busybox:
+  tag: "1.30"
+
+$ helm install -f values2.yaml mysql/
+WARNING: This chart is deprecated
+NAME:   braided-toad
+(省略)
+
+# 確認
+$ kubectl get po braided-toad-mysql-6f4b79c654-wx744 -o json | jq '.spec | .initContainers[] | .image'
+"busybox:1.30"
+```
+
+普通にできた。
+
+## おまけ
 
 複数のファイルを指定できるため、以下のような構成をとっておいて、パイプライン実行時に環境に適した値でインストールやアップデートができるというメリットが有る。
 
