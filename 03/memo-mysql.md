@@ -34,7 +34,7 @@ tailored-whippet-mysql-test  1     0s
 
 describe して確認
 
-```
+```sh
 $ kubectl describe po tailored-whippet-mysql-6fcc64fbb9-746p6
 
 (省略)
