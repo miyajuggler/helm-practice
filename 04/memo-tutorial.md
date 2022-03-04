@@ -1047,7 +1047,7 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-configmap
   labels:
-    {{ template "mychart.app" .}}
+    {{ template "mychart.app" . }}
 data:
   myvalue: "Hello World"
   {{- range $key, $val := .Values.favorite }}
@@ -1077,14 +1077,12 @@ app_name: mychart
 app_version: "0.1.0+1646402558"
 ```
 
-labels
-
-代入された template がテキストで左揃えになるから。
+labels の app_name 以外のインデントが左揃えになってずれていることがわかる。代入された template がテキストで左揃えになるからこうなってしまう。  
 template はアクションであって関数ではないので、出力結果を他の関数に渡すことができない。単純にインラインで一行が挿入される。
 
 こうした場合を回避するために include function がある
 
-しゅうせうするために include とあわせて nindent function を使う。
+インデントを修正するために include とあわせて nindent function を使う。
 
 以下のように修正する。nindent を使うと指定した数字分インデントが調整できる。
 

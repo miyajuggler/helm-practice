@@ -3,10 +3,10 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-configmap
   labels:
-    {{- include "mychart.app" . | nindent 4 }}
+    {{ template "mychart.app" . }}
 data:
   myvalue: "Hello World"
   {{- range $key, $val := .Values.favorite }}
   {{ $key }}: {{ $val | quote }}
   {{- end }}
-{{- include "mychart.app" . | nindent 2 }}
+{{ template "mychart.app" . }}
