@@ -1,3 +1,12 @@
 favorite:
-  # drink: coffee
+  drink: coffee
   food: pizza
+pizzaToppings:
+  - mushrooms
+  - cheese
+  - peppers
+  - onions
+lakeel:
+  aguro: tatsuya
+  miyazaki: naohiro
+  kaneko: yuki

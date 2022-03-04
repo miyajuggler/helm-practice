@@ -416,3 +416,711 @@ helm では以下のフロー制御が使える。
 
 if / else により chart で条件分岐ができる。
 たとえば PersistentVolume を使う場合は PV を宣言し、使わない場合は emptyDir を使う、などの条件分岐が実現できる。
+
+```yaml
+{{ if PIPELINE }}
+  # Do something
+{{ else if OTHER PIPELINE }}
+  # Do something else
+{{ else }}
+  # Default case
+```
+
+↑ pipeline に対しての条件判定
+
+false になる判定としては
+
+- boolean 値で false
+- 数字の 0
+- 空文字
+- null または nil
+- からのコレクション
+
+これ以外は true 判定となる。
+
+実際に試してみる。
+
+values.yaml
+
+```yaml
+favorite:
+  drink: coffee
+  food: pizza
+```
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  drink: {{ .Values.favorite.drink | default "tea" | quote }}
+  food: {{ .Values.favorite.food | upper | quote }}
+  {{ if eq .Values.favorite.drink "coffee" }}mug: true{{ end }}
+```
+
+values.yaml の favolite.drink が coffee の場合、mug:true が出力される。
+
+デバッグしてみる。
+
+```sh
+$ helm install --debug --dry-run mychart
+(省略)
+
+---
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wistful-antelope-configmap
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "PIZZA"
+  mug: true
+```
+
+### ホワイトスペースの制御
+
+helm で意外と悩まされる問題がホワイトスペースの扱い。
+例えば上の yaml ファイルを読みやすい形式にすると、ホワイトスペースの問題に直面する。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  drink: {{ .Values.favorite.drink | default "tea" | quote }}
+  food: {{ .Values.favorite.food | upper | quote }}
+  {{ if eq .Values.favorite.drink "coffee" }}
+    mug: true
+  {{ end }}
+```
+
+デバッグしてみるとエラーが発生する。
+これはインデントをずらしたことによって余分なホワイトスペースがあるからだ。
+
+```sh
+$ helm install --debug --dry-run mychart
+[debug] Created tunnel using local port: '50779'
+
+[debug] SERVER: "127.0.0.1:50779"
+
+[debug] Original chart version: ""
+[debug] CHART PATH: /Users/miyazakinaohiro/github/helm-practice/04/mychart
+
+Error: YAML parse error on mychart/templates/configmap.yaml: error converting YAML to JSON: yaml: line 9: did not find expected key
+```
+
+なので mug: true 部分のインデントを修正してみる。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  drink: {{ .Values.favorite.drink | default "tea" | quote }}
+  food: {{ .Values.favorite.food | upper | quote }}
+  {{ if eq .Values.favorite.drink "coffee" }}
+  mug: true
+  {{ end }}
+```
+
+これを実行するとエラーはなくなるが以下のような余計な改行ができてしまう。
+
+```sh
+$ helm install --debug --dry-run mychart
+(省略)
+
+---
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: morbid-anteater-configmap
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "PIZZA"
+
+  mug: true
+```
+
+これはテンプレートエンジンが実行したとき、「{{ }}」のコンテンツが取り除かれても残りの空白がそのまま残るからである。  
+この問題を解決するためのツールが helm には存在する。
+
+「{{-」をつけることで左側の改行文字を取り除き、「-}}」をつけることで右側の改行文字を取り除くことができる。
+
+以下のように書き換えてデバッグしてみる。
+
+```yaml
+(省略)
+data:
+  myvalue: "Hello World"
+  drink: {{ .Values.favorite.drink | default "tea" | quote }}
+  food: {{ .Values.favorite.food | upper | quote }}
+  {{- if eq .Values.favorite.drink "coffee" }}
+  mug: true
+  {{ end }}
+```
+
+```sh
+$ helm install --debug --dry-run mychart                                    ○ docker-desktop
+(省略)
+
+---
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nonexistent-anaconda-configmap
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "PIZZA"
+  mug: true
+```
+
+このように左側の改行が取り除かれて上のような出力結果となる
+
+ちなみに以下のように誤ると改行が取り除かれすぎてしまう。
+
+```yaml
+(省略)
+  food: {{ .Values.favorite.food | upper | quote }}
+  {{- if eq .Values.favorite.drink "coffee" -}}
+  mug: true
+  {{ end }}
+```
+
+```sh
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "PIZZA"mug: true
+```
+
+### with
+
+with を使うことで、変数のスコープができる。これまで出てきた「.」これはカレントスコープを示しており、「.Values」はカレントスコープの「Values」オブジェクトにアクセスしている。
+
+どういうことかというと以下の例を参考にしたら良い。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  {{ end }}
+```
+
+「.Values.favolite」を with で宣言している。
+これにより「.drink」と呼び出す階層が浅くなった。
+「{{ with }}」から「{{ end }}」までの変数のスコープが変更になったからである。
+
+### range
+
+プログラミングで言う for 文である。
+
+values.yaml を以下のように書き換える。
+
+```yaml
+favorite:
+  drink: coffee
+  food: pizza
+pizzaToppings:
+  - mushrooms
+  - cheese
+  - peppers
+  - onions
+```
+
+そして configmap.yaml を以下のように書き換える。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  {{- end }}
+  toppings: |-
+    {{- range .Values.pizzaToppings }}
+    - {{ . | title | quote }}
+    {{- end }}
+```
+
+「range .Values.pizzaToppings」で pizzaToppings リストの個数分、処理が繰り返される。  
+range の次の行で「. | title | quote」とあるがこの「.」に 1 回目のループで mushrooms 2 回目のループで cheese 、、、といった感じでセットされる。
+「title | quote」で先頭を大文字にして、ダブルクォーテーションがつく。
+
+また、tuple function を使って簡単にリストを反復処理できる。
+以下のような内容に書き換えてみる。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  {{- end }}
+  size: |-
+  {{- range tuple "small" "medium" "large" }}
+  - {{ . }}
+  {{- end }}
+```
+
+すると、出力は以下のようになる。
+
+```yaml
+(省略)
+
+size: |-
+  - small
+  - medium
+  - large
+
+```
+
+### valiables
+
+変数を template 内で代入する仕組みがある。
+「$変数名」と「:=」を利用することで、template 内で変数を代入できる。
+
+以下のような configmap.yaml ファイルを用意する。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- $relname := .Release.Name }}
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  release: {{ $relname }}
+  {{- end }}
+```
+
+「$relname := .Release.Name」で relname という変数に 「.Release.Name」 の値を代入している。  
+そして「release: {{ $relname }}」のところで relname に代入された値を使っている。
+
+デバッグ
+
+```sh
+$ helm install --debug --dry-run mychart
+(省略)
+
+NAME:   juiced-buffalo
+(省略)
+
+---
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: juiced-buffalo-configmap
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "PIZZA"
+  release: juiced-buffalo
+```
+
+この変数代入は range と組み合わせると便利である。
+以下にその例を乗せる。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  {{- end }}
+  toppings: |-
+    {{- range $index, $topping := .Values.pizzaToppings }}
+    - {{ $index }}: {{ $topping }}
+    {{- end }}
+```
+
+「$index」は予約語で、0 から始まりループを繰り返すごとにひとつずつ数が増えていく
+
+デバッグ
+
+```sh
+$ helm install --debug --dry-run mychart
+(省略)
+---
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wandering-wasp-configmap
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "PIZZA"
+  toppings: |-
+    - 0: mushrooms
+    - 1: cheese
+    - 2: peppers
+    - 3: onions
+```
+
+インデックスと値がリストの個数分、出力される。また、range と変数代入を組み合わせることで、key と value の両方を取得できる。
+
+以下のように configmap.yaml ファイルを用意する。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- range $key, $val := .Values.favorite }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+```
+
+「range $key, $val := .Values.favorite」で「.Values.favorite」の key と value を取得する。
+1 回目のループで「drink: "coffee"」、2 回目のループで「food: "pizza"」が取得できる。
+
+デバッグ
+
+```sh
+$ helm install --debug --dry-run mychart
+(省略)
+---
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unhinged-lynx-configmap
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "pizza"
+```
+
+## Named Template
+
+これまでのはひとつの template の中で使うものだった。これから見ていくのは複数の template ファイルで宣言・利用ができる変数である。
+define、template、block の 3 つのことであり、これらは Named Template と呼ばれている。
+
+重要なことは template name はグルーバルスコープであるということだ。もし同じ名前の 2 つの template を宣言した場合、後勝ちで最後に良いこまれたほうで上書きされる。
+
+また、サブ chart 内の template も親の chart と一緒にコンパイルされるため、template には chart 独自の名前をつけて、重複しないようにするのが良い。
+
+### helper files
+
+まず `_` というプレフィックスの付いたファイルについて説明する。
+
+template ファイルには以下の規約がある。
+
+- templates/配下のファイルは kubernetes マニフェストとして扱われる。
+- NOTES.txt は例外である（ただ、NOTES 本文に template や pipeline を利用可能）
+- `_` で始まるファイルはマニフェストとして扱われない。
+
+`_` で始まるファイルマニフェストとして扱われないが、chart の template のどこからでも利用できる。（例「\_helpers.tpl」というファイルのようにヘルパーとしてグローバルな値を定義したいとき。）  
+chart 全体で利用するグローバルな値を定義していることが多い。
+
+### defile / template アクション
+
+この 2 つはセットで利用し、define で変数定義、template で変数呼び出し、という使い方をする。
+他にも変数を定義し、その変数を利用する方法はこれまでで説明してきたが、define と template はグローバルに使えるため、chart 全体で利用できる。
+
+```yaml
+{{- define "mychart.labels" }}
+labels:
+  generator: helm
+  date: {{ now | htmlDate }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+  {{- template "mychart.labels" }}
+data:
+  myvalue: "Hello World"
+  {{- range $key, $val := .Values.favorite }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+```
+
+上記のような configmap.yaml ファイルを用意する。
+define と end の間に kubernetes オブジェクトで利用する labels ブロックを定義し、metadata に template アクションを挿入。
+
+テンプレートエンジンが読み込むと「define "mychart.labels"」を参照し、「template "mychart.labels"」の箇所に上書きされる。
+
+デバッグ
+
+```sh
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wandering-moose-configmap
+labels:
+  generator: helm
+  date: 2022-03-04
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "pizza"
+```
+
+labels のブロックが出力されていることが確認できた。
+
+define のようなグローバルな値は `_helpers.tpl` のようなヘルパーファイルで宣言をする。  
+実際に作ってやってみる。
+
+`mychart/templates/_helpers.tpl`
+
+```yaml
+{{/* Generate basic labels */}}
+{{- define "mychart.labels" }}
+labels:
+  generator: helm
+  date: {{ now | htmlDate }}
+{{- end }}
+```
+
+上記のように define の宣言場所は {{/* ... */}} とくくるのが定番
+
+configmap.yaml から define 部分を取り除く
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+  {{- template "mychart.labels" }}
+data:
+  myvalue: "Hello World"
+  {{- range $key, $val := .Values.favorite }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+```
+
+define が `_helpers.tpl` に移植したが、変わらず変数定義にアクセスでき、出力結果が変わらない
+
+```sh
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: idolized-hydra-configmap
+labels:
+  generator: helm
+  date: 2022-03-04
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "pizza"
+```
+
+### template アクションの範囲
+
+define と template アクションを扱う上で、変数のスコープについて気をつける必要がある。
+
+以下の例のように define の中で .Chart.Name と .Chart.Version が登場している。
+
+```yaml
+{{/* Generate basic labels */}}
+{{- define "mychart.labels" }}
+labels:
+  generator: helm
+  date: {{ now | htmlDate }}
+  chart: {{ .Chart.Name }}
+  version: {{ .Chart.Version }}
+{{- end }}
+```
+
+出力すると以下のようになる。
+
+```sh
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agile-jackal-configmap
+labels:
+  generator: helm
+  date: 2022-03-04
+  chart:
+  version:
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "pizza"
+```
+
+chart と version が空白で出力された。これは、{{- template "mychart.labels" }} で展開されたときに、「.」 にスコープが含まれていないからである。
+
+なので{{- template "mychart.labels" . }} のように含めてあげることで「.」 にスコープが通るようになる。
+
+以下のように configmap.yaml を編集する
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+  {{- template "mychart.labels" . }}
+(省略)
+```
+
+デバッグ
+
+```sh
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nobby-dragon-configmap
+labels:
+  generator: helm
+  date: 2022-03-04
+  chart: mychart
+  version: 0.1.0
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "pizza"
+```
+
+このように chart と version に値が入った。
+「.」 にスコープが通っているので .Chart 以外にも .Values も利用可能
+
+試す
+
+- .Values.favorite.drink を追加しても通る
+- configmap.yaml の「.」 を 「.Chart」 のように変えて、helpers.tql の方で{{ .Version }}と変えても通る
+
+### include function
+
+include function は template アクション と同じように define で定義した値を読み込む機能である。
+template との使い分けを以下から見ていく。
+
+`_helpers.tpl`
+
+```yaml
+{{/* Generate basic labels */}}
+{{- define "mychart.app" -}}
+app_name: {{ .Chart.Name }}
+app_version: "{{ .Chart.Version }}+{{ .Release.Time.Seconds }}""
+{{- end }}
+```
+
+このように app_name と app_version を定義
+
+`configmap.yaml`
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+  labels:
+    {{ template "mychart.app" .}}
+data:
+  myvalue: "Hello World"
+  {{- range $key, $val := .Values.favorite }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+{{ template "mychart.app" . }}
+```
+
+labels ブロックと data ブロックに template アクションを挿入する。2 箇所のインデントが違うことに着目
+
+デバッグ
+
+```sh
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kissing-cricket-configmap
+  labels:
+    app_name: mychart
+app_version: "0.1.0+1646402558"
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "pizza"
+app_name: mychart
+app_version: "0.1.0+1646402558"
+```
+
+labels
+
+代入された template がテキストで左揃えになるから。
+template はアクションであって関数ではないので、出力結果を他の関数に渡すことができない。単純にインラインで一行が挿入される。
+
+こうした場合を回避するために include function がある
+
+しゅうせうするために include とあわせて nindent function を使う。
+
+以下のように修正する。nindent を使うと指定した数字分インデントが調整できる。
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+  labels:
+    {{- include "mychart.app" . | nindent 4 }}
+data:
+  myvalue: "Hello World"
+  {{- range $key, $val := .Values.favorite }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+{{- include "mychart.app" . | nindent 2 }}
+```
+
+デバッグ
+
+```sh
+# Source: mychart/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rousing-manatee-configmap
+  labels:
+    app_name: mychart
+    app_version: "0.1.0+1646402921"
+data:
+  myvalue: "Hello World"
+  drink: "coffee"
+  food: "pizza"
+  app_name: mychart
+  app_version: "0.1.0+1646402921"
+```
+
+インデントが揃った。
+公式ドキュメントによれば、yaml のフォーマットに合わせることができるので、template よりも include を推奨している。
