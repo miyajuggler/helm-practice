@@ -239,12 +239,12 @@ NOTES を参考にしてログインしてみる。
 
 2. grafana にアクセスするためのグローバル IP を取得
 
-```sh
-$ export NODE_PORT=$(kubectl get --namespace monitoring -o jsonpath="{.spec.ports[0].nodePort}" services grafana)
-$ export NODE_IP=$(kubectl get nodes --namespace monitoring -o jsonpath="{.items[0].status.addresses[0].address}")
-$ echo http://$NODE_IP:$NODE_PORT
-http://192.168.65.4:32300
-```
+   ```sh
+   $ export NODE_PORT=$(kubectl get --namespace monitoring -o jsonpath="{.spec.ports[0].nodePort}" services grafana)
+   $ export NODE_IP=$(kubectl get nodes --namespace monitoring -o jsonpath="{.items[0].status.addresses[0].address}")
+   $ echo http://$NODE_IP:$NODE_PORT
+   http://192.168.65.4:32300
+   ```
 
 3. ブラウザで http://192.168.65.4:32300 を入力
 

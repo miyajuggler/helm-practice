@@ -138,6 +138,7 @@ lint の結果に問題はなく、chart 似アイコンを付けることが推
 ## helm template
 
 template 配下の yaml ファイルを表示するコマンド。  
+
 template 配下の yaml ファイルは変数定義されている。`helm template` コマンドを実行することで、`values.yaml` に記載された値を templates 配下の yaml に代入し、yaml ファイル形式の標準出力が得られる。
 
 ```sh
