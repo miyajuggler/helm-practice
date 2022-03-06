@@ -106,7 +106,7 @@ data:
 `helm install --debug --dry-run` でどのように展開されるかをインストールすることなく確認することができる。
 
 ```sh
-$ helm install --debug --dry-run
+$ helm install --debug --dry-run mychart
 (省略)
 
 NAME:   soft-anteater
@@ -127,6 +127,8 @@ data:
 ```
 
 release 名である「soft-anteater」が代入されているのがわかる。
+
+ちなみに `helm template mychart` コマンドを実行することで、`values.yaml` に記載された値を templates 配下の yaml に代入し、yaml ファイル形式の標準出力が得られる。こちらでもよい
 
 ## 組み込み変数
 
@@ -570,7 +572,7 @@ data:
 ```
 
 ```sh
-$ helm install --debug --dry-run mychart                                    ○ docker-desktop
+$ helm install --debug --dry-run mychart
 (省略)
 
 ---
@@ -877,9 +879,11 @@ define と end の間に kubernetes オブジェクトで利用する labels ブ
 
 テンプレートエンジンが読み込むと「define "mychart.labels"」を参照し、「template "mychart.labels"」の箇所に上書きされる。
 
-デバッグ
+確認
 
 ```sh
+$ helm template mychart
+---
 # Source: mychart/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -930,6 +934,8 @@ data:
 define が `_helpers.tpl` に移植したが、変わらず変数定義にアクセスでき、出力結果が変わらない
 
 ```sh
+$ helm template mychart
+---
 # Source: mychart/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -964,6 +970,8 @@ labels:
 出力すると以下のようになる。
 
 ```sh
+$ helm template mychart
+---
 # Source: mychart/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -995,9 +1003,11 @@ metadata:
 (省略)
 ```
 
-デバッグ
+確認
 
 ```sh
+$ helm template mychart
+---
 # Source: mychart/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -1058,9 +1068,11 @@ data:
 
 labels ブロックと data ブロックに template アクションを挿入する。2 箇所のインデントが違うことに着目
 
-デバッグ
+確認
 
 ```sh
+$ helm template mychart
+---
 # Source: mychart/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -1101,9 +1113,11 @@ data:
 {{- include "mychart.app" . | nindent 2 }}
 ```
 
-デバッグ
+確認
 
 ```sh
+$ helm template mychart
+---
 # Source: mychart/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
