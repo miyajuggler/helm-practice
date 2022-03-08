@@ -45,7 +45,7 @@ apiVersion: v1
 metadata:
   name: echo-service
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: happy-helming
   ports:
