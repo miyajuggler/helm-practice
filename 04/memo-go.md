@@ -21,7 +21,7 @@ chart を作る際は、先に動作確認の取れた kubernetes リソース�
 
 ```sh
 # LoadBalancer の場合
-$ kubectl apply -f sample-charts-master/kubernetes/happyHelming.yaml 
+$ kubectl apply -f sample-charts-master/kubernetes/happyHelming.yaml
 $ curl http://localhost:80/miyazaki
 Happy Helming, miyazaki!%
 
@@ -31,8 +31,9 @@ NAME           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
 echo-service   NodePort    10.102.245.195   <none>        80:30125/TCP   7m3s
 
 $ curl http://127.0.0.1:30125/miya
-Happy Helming, miya!%                    
+Happy Helming, miya!%
 ```
+
 kubernetes マニフェストは deployment と service を利用している。構成図は P93 を参考にされたし
 
 ## template 化
@@ -186,8 +187,8 @@ replicaset の数を values.yaml で変更できるように template 化した�
             - containerPort: 8080
 ```
 
-name は chart の名前で定義した。
-image は {{ .Values.image.repository }}:{{ .Values.image.tag }} でパラメータを可変できるようにした。  
+name は chart の名前で定義した。  
+image は {{ .Values.image.repository }}:{{ .Values.image.tag }} でパラメータを可変できるようにした。(values.yaml の image 名も変更すること)  
 また、imagePullPolicy も利用者の好みや要件で変更できるように template 化した。
 
 次に livenessProbe と readnessProbe の設定を template 化してみる。
@@ -400,9 +401,9 @@ spec:
 replicaCount: 1
 
 image:
-  repository: nginx
-  tag: stable
-  pullPolicy: IfNotPresent
+  repository: govargo/happy-helming
+  tag: only-echo
+  pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""
@@ -441,7 +442,7 @@ securityContext:
   # runAsUser: 1000
 
 service:
-  type: NodePort
+  type: LoadBalancer
   port: 80
 
 ingress:
@@ -477,6 +478,7 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
 
 ```
 
@@ -538,31 +540,195 @@ helm test は template/test 配下の yaml ファイルを実行する。コン�
 
 テストを実行するには事前に helm install で release を作成して helm test で指定する必要がある。
 
+helm install
+
 ```sh
 $ helm install --name happyhelm happyhelm
-
 NAME:   happyhelm
-LAST DEPLOYED: Tue Mar  8 01:52:58 2022
+LAST DEPLOYED: Tue Mar  8 22:01:59 2022
 NAMESPACE: default
 STATUS: DEPLOYED
 
 RESOURCES:
 ==> v1/Deployment
 NAME       READY  UP-TO-DATE  AVAILABLE  AGE
-happyhelm  0/1    1           0          1s
+happyhelm  0/1    1           0          0s
 
 ==> v1/Pod(related)
-NAME                       READY  STATUS             RESTARTS  AGE
-happyhelm-cdb957f57-7z5b9  0/1    ContainerCreating  0         1s
+NAME                        READY  STATUS             RESTARTS  AGE
+happyhelm-55cb7f5cf7-mtktk  0/1    ContainerCreating  0         1s
 
 ==> v1/Service
-NAME       TYPE      CLUSTER-IP    EXTERNAL-IP  PORT(S)       AGE
-happyhelm  NodePort  10.103.18.89  <none>       80:30463/TCP  1s
+NAME       TYPE          CLUSTER-IP      EXTERNAL-IP  PORT(S)       AGE
+happyhelm  LoadBalancer  10.108.107.201  localhost    80:31572/TCP  0s
 
 
 NOTES:
 1. Get the application URL by running these commands:
-  export NODE_PORT=$(kubectl get --namespace default -o jsonpath="{.spec.ports[0].nodePort}" services happyhelm)
-  export NODE_IP=$(kubectl get nodes --namespace default -o jsonpath="{.items[0].status.addresses[0].address}")
-  echo http://$NODE_IP:$NODE_PORT
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace default svc -w happyhelm'
+  export SERVICE_IP=$(kubectl get svc --namespace default happyhelm --template "{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}")
+  echo http://$SERVICE_IP:80
+```
+
+テスト
+
+```sh
+$ helm test happyhelm
+RUNNING: happyhelm-test-connection
+PASSED: happyhelm-test-connection
+```
+
+無事テストを通過し成功した。
+
+ちなみに NOTES にあるコマンドを実行して URL を取得し、curl コマンドでつないでみると
+
+```sh
+$ export SERVICE_IP=$(kubectl get svc --namespace default happyhelm --template "{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}")
+  echo http://$SERVICE_IP:80
+http://localhost:80
+
+$ curl http://localhost:80/miyazaki
+Happy Helming, miyazaki!%
+```
+
+無事起動していることがわかる。
+
+### chart のパッケージ
+
+構文チェックとテストが終わったため、chart を公開用に tar ボールに固める。
+公開に際し、chart の情報をまとめる chart.yaml を編集する。
+
+happyhelm/Chart.yaml
+
+```yaml
+apiVersion: v1
+name: happyhelm
+version: 1.0.0
+appVersion: 1.0.0
+description: Echo Happy happy-helming
+sources:
+  - http://github.com/govargo/go-happyhelming
+maintainers:
+  - name: go_vargo
+engine: gotpl
+```
+
+chart のバージョン、アプリのバージョン、説明、ソース情報などを記載する。
+これとは別に README.md も用意するべし。README.md には chart のインストールコマンドやパラメータの説明などを記載する。
+
+chart の情報を更新したら、helm package コマンドで tar ボールに詰める。
+
+```sh
+$ helm package happyhelm
+Successfully packaged chart and saved it to: /Users/miyazakinaohiro/github/helm-practice/04/happyhelm-1.0.0.tgz
+```
+
+`happyhelm-1.0.0.tgz` が作成された。
+
+次に chart の目録になる index.yaml を作成する。
+
+index.yamlファイルは「helm repo index ＜ディレクトリ＞」コマンドで作成できる。
+--url で chart リポジトリをつけることで chaart リポジトリを index.yaml に指定できる。
+
+```yaml
+apiVersion: v1
+entries:
+  happyhelm:
+    - apiVersion: v1
+      appVersion: 1.0.0
+      created: "2022-03-08T22:27:20.97378+09:00"
+      description: Echo Happy happy-helming
+      digest: 26ae993e0a2531774f91be43b7943b46b08804fd37e683ca00a108a879f7c075
+      engine: gotpl
+      maintainers:
+        - name: go_vargo
+      name: happyhelm
+      sources:
+        - http://github.com/govargo/go-happyhelming
+      urls:
+        - https://miyajuggler.github.io/charts-repository/happyhelm-1.0.0.tgz
+      version: 1.0.0
+generated: "2022-03-08T22:27:20.97238+09:00"
+```
+
+chart の情報やリンクなどが記録されている。
+index.yamlとチャートの.tgzファイルがHTTP(またはHTTPS)でサービスされるURLがHelmチャートリポジトリである
+
+### chart リポジトリーへの公開
+
+今回は github pages を利用して chart を公開する。（ぶっちゃけ HTTP、HTTPS でアクセスできる web サーバーなら何でもいい）
+
+```sh
+$ tree github.io
+github.io
+├── charts-repository
+│   ├── README.md
+│   ├── happyhelm-1.0.0.tgz
+│   └── index.yaml
+└── index.html
+```
+
+```sh
+# github 上のchart リポジトリを追加
+$ helm repo add miyajuggler https://miyajuggler.github.io/charts-repository
+"miyajuggler" has been added to your repositories
+
+# リポジトリ情報の更新
+$ helm update
+Command "update" is deprecated, Use 'helm repo update'
+
+Hang tight while we grab the latest from your chart repositories...
+...Skip local chart repository
+...Successfully got an update from the "miyajuggler" chart repository
+...Successfully got an update from the "incubator" chart repository
+...Successfully got an update from the "stable" chart repository
+Update Complete.
+
+# chart リポジトリの一覧表示
+$ helm repo list
+NAME            URL
+stable          https://charts.helm.sh/stable
+local           http://127.0.0.1:8879/charts
+incubator       https://charts.helm.sh/incubator
+miyajuggler     https://miyajuggler.github.io/charts-repository
+
+# 確認
+$ helm search miyajuggler
+NAME                    CHART VERSION   APP VERSION     DESCRIPTION
+miyajuggler/happyhelm   1.0.0           1.0.0           Echo Happy happy-helming
+```
+
+miyajuggler/happyhelm が chart リポジトリに登録されていることが確認できた。
+これにより helm fetch や helm install コマンドもできるようになった。
+
+最後に、作成した chart のインストールをしてみて終わりとする。
+
+```sh
+helm install --name miya miyajuggler/happyhelm                               ○ docker-desktop
+NAME:   miya
+LAST DEPLOYED: Tue Mar  8 23:45:34 2022
+NAMESPACE: default
+STATUS: DEPLOYED
+
+RESOURCES:
+==> v1/Deployment
+NAME            READY  UP-TO-DATE  AVAILABLE  AGE
+miya-happyhelm  0/1    1           0          0s
+
+==> v1/Pod(related)
+NAME                            READY  STATUS             RESTARTS  AGE
+miya-happyhelm-785c78759-wsbjm  0/1    ContainerCreating  0         0s
+
+==> v1/Service
+NAME            TYPE          CLUSTER-IP     EXTERNAL-IP  PORT(S)       AGE
+miya-happyhelm  LoadBalancer  10.103.41.163  localhost    80:31662/TCP  0s
+
+
+NOTES:
+1. Get the application URL by running these commands:
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace default svc -w miya-happyhelm'
+  export SERVICE_IP=$(kubectl get svc --namespace default miya-happyhelm --template "{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}")
+  echo http://$SERVICE_IP:80
 ```
