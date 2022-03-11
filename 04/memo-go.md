@@ -536,7 +536,8 @@ $ helm lint happyhelm
 
 構文チェックが終わった後は helm test で release が期待通りに動いているかをチェックする。
 
-helm test は template/test 配下の yaml ファイルを実行する。コンテナが正常に終了すると(exit 0)と成功になる。
+helm test は template/test 配下の yaml ファイルを実行する。コンテナが正常に終了すると(exit 0)と成功になる。  
+テスト用のyamlファイルを記述する必要があるが詳しい内容は割愛する。
 
 テストを実行するには事前に helm install で release を作成して helm test で指定する必要がある。
 
