@@ -537,7 +537,7 @@ $ helm lint happyhelm
 構文チェックが終わった後は helm test で release が期待通りに動いているかをチェックする。
 
 helm test は template/test 配下の yaml ファイルを実行する。コンテナが正常に終了すると(exit 0)と成功になる。  
-テスト用のyamlファイルを記述する必要があるが詳しい内容は割愛する。
+テスト用の yaml ファイルを記述する必要があるが詳しい内容は割愛する。
 
 テストを実行するには事前に helm install で release を作成して helm test で指定する必要がある。
 
@@ -569,7 +569,14 @@ NOTES:
      NOTE: It may take a few minutes for the LoadBalancer IP to be available.
            You can watch the status of by running 'kubectl get --namespace default svc -w happyhelm'
   export SERVICE_IP=$(kubectl get svc --namespace default happyhelm --template "{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}")
-  echo http://$SERVICE_IP:80
+  curl http://$SERVICE_IP:80
+```
+
+NodePort の場合、インストール時に出てくる NOTES の内容で取ってこれるだとうまく行かなかったので色々調べたところ、以下のどちらかコマンドで curl したほうがいいとのこと
+
+```sh
+$ curl http://localhost:$NODE_PORT
+$ curl http://127.0.0.1:$NODE_PORT
 ```
 
 テスト
@@ -629,7 +636,7 @@ Successfully packaged chart and saved it to: /Users/miyazakinaohiro/github/helm-
 
 次に chart の目録になる index.yaml を作成する。
 
-index.yamlファイルは「helm repo index ＜ディレクトリ＞」コマンドで作成できる。
+index.yaml ファイルは「helm repo index ＜ディレクトリ＞」コマンドで作成できる。
 --url で chart リポジトリをつけることで chaart リポジトリを index.yaml に指定できる。
 
 ```yaml
@@ -654,7 +661,7 @@ generated: "2022-03-08T22:27:20.97238+09:00"
 ```
 
 chart の情報やリンクなどが記録されている。
-index.yamlとチャートの.tgzファイルがHTTP(またはHTTPS)でサービスされるURLがHelmチャートリポジトリである
+index.yaml とチャートの.tgz ファイルが HTTP(または HTTPS)でサービスされる URL が Helm チャートリポジトリである
 
 ### chart リポジトリーへの公開
 
@@ -733,3 +740,13 @@ NOTES:
   export SERVICE_IP=$(kubectl get svc --namespace default miya-happyhelm --template "{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}")
   echo http://$SERVICE_IP:80
 ```
+
+## 参考
+
+service を NodePort で指定した場合、もともと書かれていた NOTES.txt のコードではうまく接続できなかったので、以下を参考にした
+
+[【Kubernetes】Service を作成してローカル PC からアクセスしてみる](https://amateur-engineer-blog.com/kubernetes-service/)
+
+[Kubernetes の NodePort に接続できない時の原因と対策](https://qiita.com/zousan010sanpotyu/items/208dd6b4cb00f88eca67)
+
+ClusterIP の Service はクラスタ内部からしかアクセスできないため、ポートフォワードしてローカル PC から確認する。

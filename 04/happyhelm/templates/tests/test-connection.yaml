@@ -14,5 +14,5 @@ spec:
     - name: curl
       image: appropriate/curl
       command: ['curl']
-      args:  ['http://{{ nclude "happyhelm.fullname" }}:{{ .Values.service.port }}']
+      args:  ['http://{{ include "happyhelm.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never
