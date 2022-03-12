@@ -93,19 +93,19 @@ mysql
 
 `deployment.yaml`
 
-```yml
+```diff
 containers:
     - name: {{ template "mysql.fullname" . }}
-       (-) image: "{{ .Values.image }}-{{ .Values.imageTag }}"
-       (+) image: "{{ .Values.image }}@{{ .Values.imageTag }}"
+-       image: "{{ .Values.image }}-{{ .Values.imageTag }}"
++       image: "{{ .Values.image }}@{{ .Values.imageTag }}"
 ```
 
 `values.yaml`
 
-```yml
+```diff
     image: "mysql"
-(-) imageTag: "5.7.30"
-(+) imageTag: "sha256:5adbbb05d43e67a7ed5f4856d3831b22ece5178d23c565b31cef61f92e3467ea"
+-   imageTag: "5.7.30"
++   imageTag: "sha256:5adbbb05d43e67a7ed5f4856d3831b22ece5178d23c565b31cef61f92e3467ea"
 
 ```
 

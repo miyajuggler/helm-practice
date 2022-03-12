@@ -107,10 +107,10 @@ happyhelm/values.yaml を編集していく。
 まずは happy helming 自体の変更点を修正する。
 LoadBalancer から ClusterIP に変更する。
 
-```yaml
-service:
-(-) ype: LoadBalancer
-(+) type: ClusterIP
+```diff
+  service:
+-   type: LoadBalancer
++   type: ClusterIP
     port: 80
 ```
 
@@ -131,21 +131,21 @@ envoy の転送先である socket_address に happyhelm を指定している�
 
 values.yaml
 
-```yaml
-service:
-(+) name: happyhelm
+```diff
+  service:
++   name: happyhelm
     type: ClusterIP
     port: 80
 ```
 
 templates/service.yaml
 
-```yaml
-kind: Service
-apiVersion: v1
-metadata:
-(-) name: {{ include "happyhelm.fullname" . }}
-(+) name: {{ .Values.service.name }}
+```diff
+  kind: Service
+  apiVersion: v1
+  metadata:
+-   name: {{ include "happyhelm.fullname" . }}
++   name: {{ .Values.service.name }}
     labels:
 ```
 

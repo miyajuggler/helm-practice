@@ -69,10 +69,10 @@ grafana
 
 values.yaml (service)
 
-```yaml
+```diff
   service:
-(-) type: ClusterIP
-(+) type: NodePort
+-   type: ClusterIP
++   type: NodePort
     port: 80
     targetPort: 3000
         # targetPort: 4181 To be used with a proxy extraContainer
@@ -94,11 +94,11 @@ kubernetes 上の Pod にアクセスするために方法を変更した。
 
 values.yaml (persistentvolume)
 
-```yml
+```diff
   persistence:
     type: pvc
-(-) enabled: true
-(+) enabled: true
+-   enabled: true
++   enabled: true
     # storageClassName: default
     accessModes:
         - ReadWriteOnce
