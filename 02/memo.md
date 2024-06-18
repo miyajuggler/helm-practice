@@ -17,6 +17,9 @@ Server Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.2", GitCom
 
 $ kubectl version --short --client
 Client Version: v1.21.3
+
+$ kubectl config current-context
+docker-desktop
 ```
 
 ## インストールする
@@ -73,7 +76,7 @@ intel 版のやつ
 確認
 
 ```sh
-# intel 版はこれ
+# intel 版(ロゼッタターミナル)はこれ
 $ uname -m
 x86_64
 
